@@ -1,0 +1,53 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "elements": [
+    {
+      "type": "node",
+      "id": 123456789,
+      "lat": 43.6532,
+      "lon": -79.3832,
+      "tags": {
+        "shop": "books",
+        "name": "The Bookshelf",
+        "addr:housenumber": "41",
+        "addr:street": "Quebec Street",
+        "addr:city": "Guelph",
+        "addr:province": "ON",
+        "addr:postcode": "N1H 2T3",
+        "phone": "+1-519-821-3031",
+        "website": "https://bookshelf.ca",
+        "opening_hours": "Mo-Fr 10:00-18:00; Sa 10:00-17:00; Su 12:00-17:00"
+      }
+    },
+    {
+      "type": "way",
+      "id": 987654321,
+      "center": {
+        "lat": 45.4215,
+        "lon": -75.6972
+      },
+      "tags": {
+        "shop": "books",
+        "name": "Librairie du Soleil",
+        "addr:city": "Ottawa",
+        "addr:province": "ON",
+        "opening_hours": "Mo-Sa 10:00-18:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 111222333,
+      "lat": 45.5017,
+      "lon": -73.5673,
+      "tags": {
+        "shop": "books",
+        "name": "Librairie Drawn & Quarterly",
+        "addr:city": "Montréal",
+        "addr:province": "QC",
+        "website": "https://drawnandquarterly.com",
+        "opening_hours": "24/7"
+      }
+    }
+  ]
+}

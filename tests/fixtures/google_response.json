@@ -1,0 +1,48 @@
+{
+  "name": "places/ChIJN1t_tDeuEmsRUsoyG83frY4",
+  "id": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+  "displayName": {
+    "text": "The Bookshelf",
+    "languageCode": "en"
+  },
+  "internationalPhoneNumber": "+1 519-821-3031",
+  "websiteUri": "https://bookshelf.ca/",
+  "regularOpeningHours": {
+    "openNow": true,
+    "periods": [
+      {
+        "open": {"day": 1, "hour": 10, "minute": 0},
+        "close": {"day": 1, "hour": 18, "minute": 0}
+      },
+      {
+        "open": {"day": 2, "hour": 10, "minute": 0},
+        "close": {"day": 2, "hour": 18, "minute": 0}
+      },
+      {
+        "open": {"day": 3, "hour": 10, "minute": 0},
+        "close": {"day": 3, "hour": 18, "minute": 0}
+      },
+      {
+        "open": {"day": 4, "hour": 10, "minute": 0},
+        "close": {"day": 4, "hour": 18, "minute": 0}
+      },
+      {
+        "open": {"day": 5, "hour": 10, "minute": 0},
+        "close": {"day": 5, "hour": 17, "minute": 0}
+      },
+      {
+        "open": {"day": 0, "hour": 12, "minute": 0},
+        "close": {"day": 0, "hour": 17, "minute": 0}
+      }
+    ],
+    "weekdayDescriptions": [
+      "Monday: 10:00 AM – 6:00 PM",
+      "Tuesday: 10:00 AM – 6:00 PM",
+      "Wednesday: 10:00 AM – 6:00 PM",
+      "Thursday: 10:00 AM – 6:00 PM",
+      "Friday: 10:00 AM – 5:00 PM",
+      "Saturday: Closed",
+      "Sunday: 12:00 PM – 5:00 PM"
+    ]
+  }
+}

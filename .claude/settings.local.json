@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dave\\\\Repos\\\\indie-books-atlas-pipeline\" -Recurse -Force)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "Bash(ConvertTo-Json)",
+      "Bash(git -C \"c:\\\\Users\\\\dave\\\\Repos\\\\indie-books-atlas-pipeline\" log --oneline -10)",
+      "Bash(pip install *)",
+      "Bash(pip index *)",
+      "Bash(python -m venv .venv)",
+      "Bash(.venv\\\\Scripts\\\\pip install *)",
+      "Bash(python -m venv \"c:/Users/dave/Repos/indie-books-atlas-pipeline/.venv\")",
+      "Bash(\"c:/Users/dave/Repos/indie-books-atlas-pipeline/.venv/Scripts/pip\" install *)"
+    ]
+  }
+}
