@@ -27,8 +27,11 @@ def fetch_canadian_bookstores(sparql_endpoint: str = _SPARQL_ENDPOINT) -> list[d
     with httpx.Client(timeout=60.0) as client:
         response = client.get(
             sparql_endpoint,
-            params={"query": SPARQL_QUERY, "format": "json"},
-            headers={"Accept": "application/sparql-results+json"},
+            params={"query": SPARQL_QUERY.strip(), "format": "json"},
+            headers={
+                "Accept": "application/sparql-results+json",
+                "User-Agent": "indie-books-atlas-pipeline/0.1 (https://indiebooksatlas.ca)",
+            },
         )
         response.raise_for_status()
         data = response.json()

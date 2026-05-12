@@ -1,4 +1,4 @@
-# FRAGILE: depends on CIBA page structure — https://canadianindependentbooksellers.ca
+# FRAGILE: depends on CIBA page structure — https://cibabooks.ca
 # Returns [] on any failure so seed continues uninterrupted.
 
 import re
@@ -9,7 +9,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from pipeline.utils.logging import get_logger
 
-_BASE_URL = "https://canadianindependentbooksellers.ca"
+_BASE_URL = "https://cibabooks.ca"
 log = get_logger(__name__)
 
 
@@ -58,7 +58,11 @@ class _MemberParser(HTMLParser):
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30))
 def _fetch_html(url: str) -> str:
     with httpx.Client(timeout=30.0) as client:
-        response = client.get(url, follow_redirects=True)
+        response = client.get(
+            url,
+            follow_redirects=True,
+            headers={"User-Agent": "indie-books-atlas-pipeline/0.1 (https://indiebooksatlas.ca)"},
+        )
         response.raise_for_status()
         return response.text
 
@@ -69,7 +73,7 @@ def fetch_member_list(base_url: str = _BASE_URL) -> list[dict]:
     Returns [] on any failure — never raises.
     """
     try:
-        html = _fetch_html(f"{base_url}/members/")
+        html = _fetch_html(f"{base_url}/member-directory/")
         parser = _MemberParser()
         parser.feed(html)
         stores = parser.stores
