@@ -1,3 +1,5 @@
+import urllib.parse
+
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -19,7 +21,14 @@ def fetch_canadian_bookstores(overpass_url: str) -> list[dict]:
     Each element is exactly as returned — no normalization.
     """
     with httpx.Client(timeout=120.0) as client:
-        response = client.post(overpass_url, data={"data": OVERPASS_QUERY})
+        response = client.post(
+            overpass_url,
+            content=urllib.parse.urlencode({"data": OVERPASS_QUERY.strip()}),
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": "indie-books-atlas-pipeline/0.1 (https://indiebooksatlas.ca)",
+            },
+        )
         response.raise_for_status()
         return response.json().get("elements", [])
 
