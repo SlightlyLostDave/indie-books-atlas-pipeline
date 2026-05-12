@@ -56,6 +56,7 @@ tests/fixtures/       # static JSON for offline testing
 **Source priority** (highest wins on conflict): `manual` > `ciba` > `alq` > `google_places` > `osm` > `wikidata` > `community_submission`
 
 **OSM sync diff logic:**
+
 - New `osm_id`: insert; set `needs_review = true` if `data_quality_score < 40`
 - Changed fields: update, write change_log, never touch `is_verified` or `manual`-sourced fields
 - Missing from Overpass: set `needs_review = true`, write `flag_review` change_log entry — do not close
