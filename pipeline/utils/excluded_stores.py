@@ -1,5 +1,5 @@
 # Explicit osm_ids to always exclude, regardless of tags/name (one-off cases)
-EXCLUDED_OSM_IDS: set[int] = set()  # e.g. {123456789}  # Example: Chapters downtown Toronto
+EXCLUDED_OSM_IDS: set[int] = set({497225557, 383411604, 3954151948, 2415450684, 3372125716, 11263766711, 338846655, 13196769742, 9061416372, 5622497607, 6570888196, 1278853303, 83469502, 14059959501, 9049473956, 6329863984, 1867466141, 11197791364, 3583635757, 9697055394})  # e.g. {123456789}  # Example: Chapters downtown Toronto
 
 # Substring matches (case-insensitive) against tags.brand / tags.operator / name
 EXCLUDED_NAME_KEYWORDS: set[str] = {
@@ -10,6 +10,8 @@ EXCLUDED_NAME_KEYWORDS: set[str] = {
     "university of",
     "campus store",
     "christian book",
+    "christian science",
+    "catholic book",
     "gospel",
 }
 
