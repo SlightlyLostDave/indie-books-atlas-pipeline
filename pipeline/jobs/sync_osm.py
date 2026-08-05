@@ -8,6 +8,7 @@ from pipeline.sources import osm
 from pipeline.transforms import normalize, quality_score, slug
 from pipeline.transforms.hours_parser import parse_osm_hours
 from pipeline.utils.config import get_settings
+from pipeline.utils.excluded_stores import is_excluded
 from pipeline.utils.logging import get_logger
 from pipeline.utils.provinces import normalize_province
 
@@ -82,6 +83,10 @@ def run_sync_osm(dry_run: bool = False) -> None:
             skipped += 1
             continue
 
+        if is_excluded(osm_id=osm_id, name=fields.get("name"), tags=parsed.get("tags")):
+            skipped += 1
+            continue
+
         city = fields.get("city") or ""
         province = fields.get("province") or ""
         base = slug.generate_slug(fields["name"], city, province)
@@ -124,6 +129,14 @@ def run_sync_osm(dry_run: bool = False) -> None:
         if existing.get("source") in _MANUAL_SOURCES:
             skipped += 1
             continue
+
+        if is_excluded(osm_id=osm_id, name=existing.get("name"), tags=parsed.get("tags")):
+            log.warning(
+                "existing_store_matches_exclusion_rule",
+                osm_id=osm_id,
+                store_id=existing.get("id"),
+                name=existing.get("name"),
+            )
 
         new_fields = _osm_element_to_fields(parsed)
         diff = _compute_diff(existing, new_fields)

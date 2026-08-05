@@ -227,6 +227,19 @@ Computed by `transforms/quality_score.py` on every upsert. Max 100.
 | `short_description` is not null | +10    |
 | `instagram` is not null         | +10    |
 
+### Excluded stores
+
+`pipeline/utils/excluded_stores.py` defines `is_excluded(osm_id, name, tags)`, a
+pure predicate checked by both `jobs/seed.py` and `jobs/sync_osm.py` before a
+new OSM store is added. It combines an explicit `EXCLUDED_OSM_IDS` denylist
+with keyword/tag rules (`EXCLUDED_NAME_KEYWORDS`, `EXCLUDED_TAG_VALUES`, and a
+religion-tag check) to keep out chain stores, university bookstores, and
+religious bookstores. Matches are skipped, not written — no `change_log`
+entry, since nothing was created. During `sync_osm`, if an *already-seeded*
+store's `osm_id` now matches the predicate, the job logs a warning instead of
+closing it; per the rule above, `is_permanently_closed` is never set by
+pipeline code, so removing an already-seeded excluded store is a manual step.
+
 ---
 
 ## Data sources

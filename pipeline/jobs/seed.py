@@ -8,6 +8,7 @@ from pipeline.sources import ciba, osm, wikidata
 from pipeline.transforms import normalize, quality_score, slug
 from pipeline.transforms.hours_parser import parse_osm_hours
 from pipeline.utils.config import get_settings
+from pipeline.utils.excluded_stores import is_excluded
 from pipeline.utils.logging import get_logger
 from pipeline.utils.provinces import normalize_province
 
@@ -97,13 +98,13 @@ def run_seed(dry_run: bool = False) -> None:
     osm_parsed = [osm.parse_element(e) for e in raw_osm]
     log.info("osm_fetched", count=len(osm_parsed))
 
-    log.info("fetching_ciba")
-    ciba_data = ciba.fetch_member_list()
-    log.info("ciba_fetched", count=len(ciba_data))
+    # log.info("fetching_ciba")
+    # ciba_data = ciba.fetch_member_list()
+    # log.info("ciba_fetched", count=len(ciba_data))
 
-    log.info("fetching_wikidata")
-    wikidata_data = wikidata.fetch_canadian_bookstores()
-    log.info("wikidata_fetched", count=len(wikidata_data))
+    # log.info("fetching_wikidata")
+    # wikidata_data = wikidata.fetch_canadian_bookstores()
+    # log.info("wikidata_fetched", count=len(wikidata_data))
 
     # --- Build unified record map ---
     # Key: osm_id (int) when available, else (name_lower, city_lower)
@@ -113,31 +114,33 @@ def run_seed(dry_run: bool = False) -> None:
         record = _build_osm_record(parsed)
         if not record.get("name"):
             continue
+        if is_excluded(osm_id=parsed.get("osm_id"), name=record["name"], tags=parsed.get("tags")):
+            continue
         key = parsed["osm_id"]
         record_map[key] = {"record": record, "raw": parsed, "source": "osm"}
 
-    for entry in ciba_data:
-        record = _build_ciba_record(entry)
-        if not record.get("name"):
-            continue
-        name_city = (record["name"].lower(), (record.get("city") or "").lower())
-        # Check if already in map via osm_id match — merge if higher priority
-        existing_key = _find_existing_key(record_map, name_city)
-        if existing_key is not None:
-            existing = record_map[existing_key]
-            if _priority("ciba") < _priority(existing["source"]):
-                record_map[existing_key] = {"record": {**existing["record"], **_non_null(record)}, "raw": entry, "source": "ciba"}
-        else:
-            record_map[name_city] = {"record": record, "raw": entry, "source": "ciba"}
+    # for entry in ciba_data:
+    #     record = _build_ciba_record(entry)
+    #     if not record.get("name"):
+    #         continue
+    #     name_city = (record["name"].lower(), (record.get("city") or "").lower())
+    #     # Check if already in map via osm_id match — merge if higher priority
+    #     existing_key = _find_existing_key(record_map, name_city)
+    #     if existing_key is not None:
+    #         existing = record_map[existing_key]
+    #         if _priority("ciba") < _priority(existing["source"]):
+    #             record_map[existing_key] = {"record": {**existing["record"], **_non_null(record)}, "raw": entry, "source": "ciba"}
+    #     else:
+    #         record_map[name_city] = {"record": record, "raw": entry, "source": "ciba"}
 
-    for binding in wikidata_data:
-        record = _build_wikidata_record(binding)
-        if not record.get("name"):
-            continue
-        name_city = (record["name"].lower(), "")
-        existing_key = _find_existing_key(record_map, name_city)
-        if existing_key is None:
-            record_map[name_city] = {"record": record, "raw": binding, "source": "wikidata"}
+    # for binding in wikidata_data:
+    #     record = _build_wikidata_record(binding)
+    #     if not record.get("name"):
+    #         continue
+    #     name_city = (record["name"].lower(), "")
+    #     existing_key = _find_existing_key(record_map, name_city)
+    #     if existing_key is None:
+    #         record_map[name_city] = {"record": record, "raw": binding, "source": "wikidata"}
 
     log.info("deduplication_complete", unique_stores=len(record_map))
 
@@ -179,7 +182,8 @@ def run_seed(dry_run: bool = False) -> None:
         if existing:
             diff = _compute_diff(existing, record)
             if diff:
-                stores.update_store(existing["id"], diff)
+                new_values = {field: change["to"] for field, change in diff.items()}
+                stores.update_store(existing["id"], new_values)
                 change_log.write_update(existing["id"], diff, source_name)
                 updated += 1
             else:
