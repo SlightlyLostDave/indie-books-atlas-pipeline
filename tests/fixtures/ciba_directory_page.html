@@ -1,0 +1,18 @@
+<!-- Trimmed excerpt of https://cibabooks.ca/member-directory/ -->
+<!-- The directory list itself is empty static markup; Wild Apricot's JS fills it in
+     at runtime via a POST to /Sys/MemberDirectory/LoadMembers keyed on FormId below. -->
+<div id="id_jKhFUEd" class="WaGadgetLast WaGadgetMemberDirectory gadgetStyleNone WaGadgetMemberDirectoryStateList">
+  <div id="FunctionalBlock1_ctl00_ctl00_memberDirectory" class="memberDirectory"></div>
+</div>
+<script type="text/javascript">
+//<![CDATA[
+document.getElementById('FunctionalBlock1_ctl00_jsSupportedContainer').style.display = 'block';
+MemberDirectoryListRenderer.labels.headers.name = 'Name';
+MemberDirectoryListRenderer.detailsUrlTemplate = 'https://cibabooks.ca/Sys/PublicProfile/';
+MemberDirectoryListRenderer.searchBoxId = 'FunctionalBlock1_ctl00_ctl00_search';
+MemberDirectoryListRenderer.outputBlockId = 'FunctionalBlock1_ctl00_ctl00_memberDirectory';
+MemberDirectoryListRenderer.MemberDirectoryListWebServiceUrl_LoadMembers = 'https://cibabooks.ca/Sys/MemberDirectory/LoadMembers';
+MemberDirectoryListRenderer.FormId = '5633621';
+MemberDirectoryListRenderer.init();
+//]]>
+</script>

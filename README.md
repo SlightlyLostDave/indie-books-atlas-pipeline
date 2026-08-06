@@ -1,6 +1,6 @@
 # Indie Books Atlas - Pipeline
 
-Data pipeline for [Indie Books Atlas](https://indiebooksatlas.ca), a map of independent bookstores across Canada. This repo handles ingestion and syncing store data into Supabase; the Next.js frontend lives in a separate repo.
+Data pipeline for [Indie Books Atlas](https://indie-books-atlas.vercel.app), a map of independent bookstores across Canada. This repo handles ingestion and syncing store data into Supabase; the Next.js frontend lives in a separate repo.
 
 ## Jobs
 

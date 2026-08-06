@@ -5,7 +5,7 @@ Safe to re-run: uses upsert logic keyed on osm_id or (name_lower, city_lower).
 
 from pipeline.db import change_log, store_sources, stores
 from pipeline.sources import ciba, osm, wikidata
-from pipeline.transforms import normalize, quality_score, slug
+from pipeline.transforms import dedup, normalize, quality_score, slug
 from pipeline.transforms.hours_parser import parse_osm_hours
 from pipeline.utils.config import get_settings
 from pipeline.utils.excluded_stores import is_excluded
@@ -98,9 +98,9 @@ def run_seed(dry_run: bool = False) -> None:
     osm_parsed = [osm.parse_element(e) for e in raw_osm]
     log.info("osm_fetched", count=len(osm_parsed))
 
-    # log.info("fetching_ciba")
-    # ciba_data = ciba.fetch_member_list()
-    # log.info("ciba_fetched", count=len(ciba_data))
+    log.info("fetching_ciba")
+    ciba_data = ciba.fetch_member_list()
+    log.info("ciba_fetched", count=len(ciba_data))
 
     # log.info("fetching_wikidata")
     # wikidata_data = wikidata.fetch_canadian_bookstores()
@@ -119,19 +119,19 @@ def run_seed(dry_run: bool = False) -> None:
         key = parsed["osm_id"]
         record_map[key] = {"record": record, "raw": parsed, "source": "osm"}
 
-    # for entry in ciba_data:
-    #     record = _build_ciba_record(entry)
-    #     if not record.get("name"):
-    #         continue
-    #     name_city = (record["name"].lower(), (record.get("city") or "").lower())
-    #     # Check if already in map via osm_id match — merge if higher priority
-    #     existing_key = _find_existing_key(record_map, name_city)
-    #     if existing_key is not None:
-    #         existing = record_map[existing_key]
-    #         if _priority("ciba") < _priority(existing["source"]):
-    #             record_map[existing_key] = {"record": {**existing["record"], **_non_null(record)}, "raw": entry, "source": "ciba"}
-    #     else:
-    #         record_map[name_city] = {"record": record, "raw": entry, "source": "ciba"}
+    for entry in ciba_data:
+        record = _build_ciba_record(entry)
+        if not record.get("name"):
+            continue
+        name_city = (record["name"].lower(), (record.get("city") or "").lower())
+        # Check if already in map via osm_id match — merge if higher priority
+        existing_key = _find_existing_key(record_map, name_city, record.get("province"))
+        if existing_key is not None:
+            existing = record_map[existing_key]
+            if _priority("ciba") < _priority(existing["source"]):
+                record_map[existing_key] = {"record": {**existing["record"], **_non_null(record)}, "raw": entry, "source": "ciba"}
+        else:
+            record_map[name_city] = {"record": record, "raw": entry, "source": "ciba"}
 
     # for binding in wikidata_data:
     #     record = _build_wikidata_record(binding)
@@ -154,9 +154,14 @@ def run_seed(dry_run: bool = False) -> None:
         source_name = item["source"]
         raw_data = item["raw"]
 
-        if not record.get("name") or not record.get("lat") or not record.get("lng"):
+        if not record.get("name"):
             skipped += 1
             continue
+        if source_name != "ciba" and (not record.get("lat") or not record.get("lng")):
+            skipped += 1
+            continue
+        if source_name == "ciba" and (not record.get("lat") or not record.get("lng")):
+            record["needs_review"] = True
 
         # Compute slug
         city = record.get("city") or ""
@@ -208,12 +213,17 @@ def _non_null(record: dict) -> dict:
     return {k: v for k, v in record.items() if v is not None}
 
 
-def _find_existing_key(record_map: dict, name_city: tuple) -> object | None:
-    """Check if a (name, city) tuple is already represented in the map."""
+def _find_existing_key(record_map: dict, name_city: tuple, province: str | None = None) -> object | None:
+    """Check if a (name, city) tuple is already represented in the map, exactly or fuzzily."""
     if name_city in record_map:
         return name_city
-    # Also check for close matches (same name, different city) — skip for now
-    return None
+    name, _city = name_city
+    candidates = [
+        {"key": key, "name": value["record"]["name"], "province": value["record"].get("province")}
+        for key, value in record_map.items()
+    ]
+    match = dedup.find_fuzzy_match(name, province, candidates)
+    return match["key"] if match else None
 
 
 def _compute_diff(existing: dict, new: dict) -> dict:
