@@ -67,6 +67,10 @@ tests/fixtures/       # static JSON for offline testing
 
 **`stores.specialties[]`** only accepts values from the `specialty_tags` table controlled vocabulary — no free text.
 
+**Excluded stores**: `pipeline/utils/excluded_stores.py` keeps chain, university, and religious bookstores out of `seed`/`sync_osm` via `is_excluded(osm_id, name, tags)`. Matches are skipped silently (no `change_log` entry — nothing was created). It only prevents future inserts; removing an already-seeded store that now matches is a manual step.
+
+**Cross-source dedup**: `transforms/dedup.py` fuzzy-matches store names (`SequenceMatcher`, threshold 0.8, same-province only) so `seed` doesn't create duplicate rows when the same store appears under slightly different names across sources.
+
 ## Testing conventions
 
 - Use `pytest-httpx` to mock all httpx calls — no real API calls in tests

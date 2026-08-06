@@ -7,7 +7,7 @@ Read it fully before writing any code.
 
 ## Project overview
 
-Indie Books Atlas (indiebooksatlas.ca) is a community resource mapping every
+[Indie Books Atlas (indiebooksatlas.ca)](https://indie-books-atlas.vercel.app/) is a community resource mapping every
 independent bookstore in Canada. It is a Next.js web app backed by a Supabase
 (PostgreSQL + PostGIS) database. This repository contains only the data pipeline
 — the scripts that ingest, sync, and enrich bookstore data from external sources
@@ -60,7 +60,8 @@ indie-books-atlas-pipeline/
 │   │   ├── normalize.py      # shared field normalization (phone, postal, etc.)
 │   │   ├── hours_parser.py   # OSM opening_hours string → hours_parsed JSONB
 │   │   ├── slug.py           # name + city → unique slug
-│   │   └── quality_score.py  # computes data_quality_score (0–100)
+│   │   ├── quality_score.py  # computes data_quality_score (0–100)
+│   │   └── dedup.py          # fuzzy name matching for cross-source dedup during seed
 │   ├── db/                   # all Supabase interaction
 │   │   ├── client.py         # Supabase client singleton
 │   │   ├── stores.py         # read/write ops on stores table
@@ -235,10 +236,20 @@ new OSM store is added. It combines an explicit `EXCLUDED_OSM_IDS` denylist
 with keyword/tag rules (`EXCLUDED_NAME_KEYWORDS`, `EXCLUDED_TAG_VALUES`, and a
 religion-tag check) to keep out chain stores, university bookstores, and
 religious bookstores. Matches are skipped, not written — no `change_log`
-entry, since nothing was created. During `sync_osm`, if an *already-seeded*
+entry, since nothing was created. During `sync_osm`, if an _already-seeded_
 store's `osm_id` now matches the predicate, the job logs a warning instead of
 closing it; per the rule above, `is_permanently_closed` is never set by
 pipeline code, so removing an already-seeded excluded store is a manual step.
+
+### Cross-source deduplication
+
+`seed.py` ingests all sources into an in-memory map keyed by `(name, city)`
+before writing anything. `transforms/dedup.py` provides `find_fuzzy_match`,
+used when a `(name, city)` pair isn't an exact key match — it compares
+`SequenceMatcher` name similarity (threshold 0.8) against candidates already
+in the map, restricted to the same province when both sides have one, to
+catch the same store listed with slightly different names across sources
+(e.g. OSM vs. CIBA) without merging unrelated stores that share a city.
 
 ---
 

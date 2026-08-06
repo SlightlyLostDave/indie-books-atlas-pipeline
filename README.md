@@ -1,6 +1,6 @@
 # Indie Books Atlas - Pipeline
 
-Data pipeline for [Indie Books Atlas](https://indie-books-atlas.vercel.app), a map of independent bookstores across Canada. This repo handles ingestion and syncing store data into Supabase; the Next.js frontend lives in a separate repo.
+Data pipeline for [Indie Books Atlas](https://indie-books-atlas.vercel.app/), a map of independent bookstores across Canada. This repo handles ingestion and syncing store data into Supabase; the Next.js frontend lives in a separate repo.
 
 ## Jobs
 
@@ -97,4 +97,4 @@ scripts/              # thin click wrappers around jobs - no logic here
 tests/fixtures/       # static JSON for offline testing
 ```
 
-See [AGENT.md](AGENT.md) for full architectural detail and data rules (quality scoring, hours parsing, OSM diff logic, etc.), and [CLAUDE.md](CLAUDE.md) for the conventions this codebase enforces.
+See [AGENT.md](AGENT.md) for full architectural detail and data rules (quality scoring, hours parsing, OSM diff logic, etc.) and [CLAUDE.md](CLAUDE.md) for the conventions this codebase enforces.
