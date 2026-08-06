@@ -4,8 +4,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 _SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 
 SPARQL_QUERY = """
-SELECT ?item ?itemLabel ?lat ?lng ?osm_id ?website ?inception WHERE {
-  ?item wdt:P31/wdt:P279* wd:Q126973 .
+SELECT ?item ?itemLabel ?lat ?lng ?osm_id ?website ?inception ?provinceLabel ?closed WHERE {
+  ?item wdt:P31/wdt:P279* wd:Q200764 .
   ?item wdt:P17 wd:Q16 .
   ?item wdt:P625 ?coord .
   BIND(geof:latitude(?coord) AS ?lat)
@@ -13,6 +13,8 @@ SELECT ?item ?itemLabel ?lat ?lng ?osm_id ?website ?inception WHERE {
   OPTIONAL { ?item wdt:P402 ?osm_id }
   OPTIONAL { ?item wdt:P856 ?website }
   OPTIONAL { ?item wdt:P571 ?inception }
+  OPTIONAL { ?item wdt:P131* ?province . ?province wdt:P31 wd:Q11828004 . }
+  OPTIONAL { ?item wdt:P576 ?closed }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en,fr". }
 }
 """

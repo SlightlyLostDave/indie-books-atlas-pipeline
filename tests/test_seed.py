@@ -36,7 +36,26 @@ class _StoresStub:
         return {"id": store_id, **fields}
 
 
-def _patch_common(monkeypatch, stores_stub, osm_elements=None, ciba_entries=None):
+def _wikidata_binding(
+    name="Wikidata Books", lat=53.5, lng=-113.5, website=None, province=None, closed=None
+):
+    binding = {
+        "itemLabel": {"value": name},
+        "lat": {"value": str(lat)},
+        "lng": {"value": str(lng)},
+    }
+    if website:
+        binding["website"] = {"value": website}
+    if province:
+        binding["provinceLabel"] = {"value": province}
+    if closed:
+        binding["closed"] = {"value": closed}
+    return binding
+
+
+def _patch_common(
+    monkeypatch, stores_stub, osm_elements=None, ciba_entries=None, wikidata_bindings=None
+):
     monkeypatch.setattr(seed, "get_settings", lambda: type("S", (), {"overpass_api_url": ""})())
     monkeypatch.setattr(seed.osm, "fetch_canadian_bookstores", lambda url: osm_elements or [])
     monkeypatch.setattr(
@@ -45,12 +64,16 @@ def _patch_common(monkeypatch, stores_stub, osm_elements=None, ciba_entries=None
         lambda e: {"osm_id": e["osm_id"], "lat": e["lat"], "lng": e["lng"], "tags": e["tags"]},
     )
     monkeypatch.setattr(seed.ciba, "fetch_member_list", lambda: ciba_entries or [])
+    monkeypatch.setattr(
+        seed.wikidata, "fetch_canadian_bookstores", lambda: wikidata_bindings or []
+    )
     monkeypatch.setattr(seed.stores, "get_all_slugs", stores_stub.get_all_slugs)
     monkeypatch.setattr(seed.stores, "get_store_by_osm_id", stores_stub.get_store_by_osm_id)
     monkeypatch.setattr(seed.stores, "insert_store", stores_stub.insert_store)
     monkeypatch.setattr(seed.stores, "update_store", stores_stub.update_store)
     monkeypatch.setattr(seed.change_log, "write_insert", lambda *a, **k: None)
     monkeypatch.setattr(seed.change_log, "write_update", lambda *a, **k: None)
+    monkeypatch.setattr(seed.change_log, "write_flag_review", lambda *a, **k: None)
     monkeypatch.setattr(seed.store_sources, "upsert_source", lambda *a, **k: None)
 
 
@@ -110,3 +133,77 @@ class TestFuzzyMerge:
         assert len(stores_stub.inserted) == 1
         assert stores_stub.inserted[0]["phone"] == "+17805551234"
         assert stores_stub.inserted[0]["lat"] == 53.5
+
+
+class TestWikidata:
+    def test_wikidata_only_entry_is_inserted(self, monkeypatch):
+        stores_stub = _StoresStub()
+        bindings = [_wikidata_binding(name="Wikidata Books", website="https://example.com")]
+        _patch_common(monkeypatch, stores_stub, wikidata_bindings=bindings)
+
+        seed.run_seed()
+
+        assert len(stores_stub.inserted) == 1
+        assert stores_stub.inserted[0]["name"] == "Wikidata Books"
+        assert stores_stub.inserted[0]["source"] == "wikidata"
+        assert stores_stub.inserted[0]["website"] == "https://example.com"
+        assert stores_stub.inserted[0]["needs_review"] is False
+
+    def test_wikidata_entry_with_dissolution_date_needs_review(self, monkeypatch):
+        stores_stub = _StoresStub()
+        bindings = [_wikidata_binding(name="World's Biggest Bookstore", closed="2014-01-01T00:00:00Z")]
+        _patch_common(monkeypatch, stores_stub, wikidata_bindings=bindings)
+        flagged = []
+        monkeypatch.setattr(
+            seed.change_log, "write_flag_review", lambda *a, **k: flagged.append((a, k))
+        )
+
+        seed.run_seed()
+
+        assert len(stores_stub.inserted) == 1
+        assert stores_stub.inserted[0]["needs_review"] is True
+        assert "is_permanently_closed" not in stores_stub.inserted[0]
+        assert len(flagged) == 1
+
+    def test_wikidata_entry_matching_existing_osm_record_is_dropped(self, monkeypatch):
+        stores_stub = _StoresStub()
+        osm_elements = [_osm_element(osm_id=42, name="Audreys Books", city="Edmonton", province="AB")]
+        bindings = [_wikidata_binding(name="Audreys Books")]
+        _patch_common(monkeypatch, stores_stub, osm_elements=osm_elements, wikidata_bindings=bindings)
+
+        seed.run_seed()
+
+        assert len(stores_stub.inserted) == 1
+        assert stores_stub.inserted[0]["source"] == "osm"
+
+    def test_wikidata_entry_in_different_province_from_same_named_osm_is_not_merged(self, monkeypatch):
+        stores_stub = _StoresStub()
+        osm_elements = [_osm_element(osm_id=42, name="Second Story Books", city="Edmonton", province="AB")]
+        bindings = [_wikidata_binding(name="Second Story Books", province="Ontario")]
+        _patch_common(monkeypatch, stores_stub, osm_elements=osm_elements, wikidata_bindings=bindings)
+
+        seed.run_seed()
+
+        assert len(stores_stub.inserted) == 2
+        sources = {row["source"] for row in stores_stub.inserted}
+        assert sources == {"osm", "wikidata"}
+
+    def test_chain_name_from_wikidata_is_excluded(self, monkeypatch):
+        stores_stub = _StoresStub()
+        bindings = [_wikidata_binding(name="Indigo Books & Music")]
+        _patch_common(monkeypatch, stores_stub, wikidata_bindings=bindings)
+
+        seed.run_seed()
+
+        assert stores_stub.inserted == []
+
+
+class TestCibaChainExclusion:
+    def test_chain_name_from_ciba_is_excluded(self, monkeypatch):
+        stores_stub = _StoresStub()
+        ciba_entries = [{"name": "Chapters Indigo", "city": "Toronto", "province": "ON", "external_id": "1"}]
+        _patch_common(monkeypatch, stores_stub, ciba_entries=ciba_entries)
+
+        seed.run_seed()
+
+        assert stores_stub.inserted == []

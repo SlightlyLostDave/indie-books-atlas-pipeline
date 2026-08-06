@@ -81,9 +81,10 @@ def _build_wikidata_record(binding: dict) -> dict:
         "lng": float(lng) if lng else None,
         "location": f"POINT({lng} {lat})" if lat and lng else None,
         "website": normalize.normalize_website(val("website")),
+        "province": normalize_province(val("provinceLabel")),
         "source": "wikidata",
         "is_verified": False,
-        "needs_review": False,
+        "needs_review": bool(val("closed")),
         "is_deleted": False,
     }
 
@@ -102,9 +103,9 @@ def run_seed(dry_run: bool = False) -> None:
     ciba_data = ciba.fetch_member_list()
     log.info("ciba_fetched", count=len(ciba_data))
 
-    # log.info("fetching_wikidata")
-    # wikidata_data = wikidata.fetch_canadian_bookstores()
-    # log.info("wikidata_fetched", count=len(wikidata_data))
+    log.info("fetching_wikidata")
+    wikidata_data = wikidata.fetch_canadian_bookstores()
+    log.info("wikidata_fetched", count=len(wikidata_data))
 
     # --- Build unified record map ---
     # Key: osm_id (int) when available, else (name_lower, city_lower)
@@ -123,6 +124,8 @@ def run_seed(dry_run: bool = False) -> None:
         record = _build_ciba_record(entry)
         if not record.get("name"):
             continue
+        if is_excluded(osm_id=None, name=record["name"]):
+            continue
         name_city = (record["name"].lower(), (record.get("city") or "").lower())
         # Check if already in map via osm_id match — merge if higher priority
         existing_key = _find_existing_key(record_map, name_city, record.get("province"))
@@ -133,14 +136,16 @@ def run_seed(dry_run: bool = False) -> None:
         else:
             record_map[name_city] = {"record": record, "raw": entry, "source": "ciba"}
 
-    # for binding in wikidata_data:
-    #     record = _build_wikidata_record(binding)
-    #     if not record.get("name"):
-    #         continue
-    #     name_city = (record["name"].lower(), "")
-    #     existing_key = _find_existing_key(record_map, name_city)
-    #     if existing_key is None:
-    #         record_map[name_city] = {"record": record, "raw": binding, "source": "wikidata"}
+    for binding in wikidata_data:
+        record = _build_wikidata_record(binding)
+        if not record.get("name"):
+            continue
+        if is_excluded(osm_id=None, name=record["name"]):
+            continue
+        name_city = (record["name"].lower(), "")
+        existing_key = _find_existing_key(record_map, name_city, record.get("province"))
+        if existing_key is None:
+            record_map[name_city] = {"record": record, "raw": binding, "source": "wikidata"}
 
     log.info("deduplication_complete", unique_stores=len(record_map))
 
@@ -197,6 +202,10 @@ def run_seed(dry_run: bool = False) -> None:
             inserted_row = stores.insert_store(record)
             store_id = inserted_row["id"]
             change_log.write_insert(store_id, record, source_name)
+            if source_name == "wikidata" and record.get("needs_review"):
+                change_log.write_flag_review(
+                    store_id, "wikidata has a dissolution date (P576)", source_name
+                )
             store_sources.upsert_source(
                 store_id,
                 source_name,
