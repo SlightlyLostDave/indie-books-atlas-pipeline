@@ -21,6 +21,16 @@ jobs:
       - name: Install dependencies
         run: pip install -e "."
 
+      - name: Check required secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: |
+          for v in SUPABASE_URL SUPABASE_SERVICE_KEY GOOGLE_PLACES_API_KEY; do
+            [ -n "${!v}" ] || { echo "::error::Secret $v is not set for environment 'production'"; exit 1; }
+          done
+
       - name: Run Google enrichment
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

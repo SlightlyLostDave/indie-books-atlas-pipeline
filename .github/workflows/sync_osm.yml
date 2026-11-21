@@ -21,6 +21,15 @@ jobs:
       - name: Install dependencies
         run: pip install -e "."
 
+      - name: Check required secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          for v in SUPABASE_URL SUPABASE_SERVICE_KEY; do
+            [ -n "${!v}" ] || { echo "::error::Secret $v is not set for environment 'production'"; exit 1; }
+          done
+
       - name: Run OSM sync
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
