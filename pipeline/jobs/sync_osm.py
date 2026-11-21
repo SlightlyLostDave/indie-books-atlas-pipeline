@@ -5,12 +5,10 @@ Categorizes stores as new / changed / missing and handles each accordingly.
 
 from pipeline.db import change_log, store_sources, stores
 from pipeline.sources import osm
-from pipeline.transforms import normalize, quality_score, slug
-from pipeline.transforms.hours_parser import parse_osm_hours
+from pipeline.transforms import osm_fields, quality_score, slug, specialties
 from pipeline.utils.config import get_settings
 from pipeline.utils.excluded_stores import is_excluded
 from pipeline.utils.logging import get_logger
-from pipeline.utils.provinces import normalize_province
 
 log = get_logger(__name__)
 
@@ -20,21 +18,7 @@ _MANUAL_SOURCES = {"manual", "ciba", "alq"}
 
 def _osm_element_to_fields(parsed: dict) -> dict:
     """Convert a parsed OSM element to a flat fields dict for diffing."""
-    tags = parsed.get("tags", {})
-    hours_raw = tags.get("opening_hours")
-    return {
-        "name": tags.get("name", "").strip() or None,
-        "lat": parsed.get("lat"),
-        "lng": parsed.get("lng"),
-        "location": f"POINT({parsed.get('lng')} {parsed.get('lat')})" if parsed.get("lat") else None,
-        "phone": normalize.normalize_phone(tags.get("phone") or tags.get("contact:phone")),
-        "website": normalize.normalize_website(tags.get("website") or tags.get("contact:website")),
-        "hours_raw": hours_raw,
-        "hours_parsed": parse_osm_hours(hours_raw),
-        "city": tags.get("addr:city"),
-        "province": normalize_province(tags.get("addr:province") or tags.get("addr:state")),
-        "postal_code": normalize.normalize_postal_code(tags.get("addr:postcode")),
-    }
+    return osm_fields.osm_element_to_fields(parsed)
 
 
 def _compute_diff(existing: dict, new_fields: dict) -> dict:
@@ -139,6 +123,9 @@ def run_sync_osm(dry_run: bool = False) -> None:
             )
 
         new_fields = _osm_element_to_fields(parsed)
+        new_fields["specialties"] = specialties.resolve_specialties(
+            existing.get("specialties"), new_fields.get("specialties")
+        )
         diff = _compute_diff(existing, new_fields)
 
         if not diff:

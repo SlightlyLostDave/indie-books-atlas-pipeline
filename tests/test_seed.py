@@ -207,3 +207,26 @@ class TestCibaChainExclusion:
         seed.run_seed()
 
         assert stores_stub.inserted == []
+
+
+class TestOsmAddressLines:
+    def test_build_osm_record_includes_address_lines(self):
+        parsed = {
+            "osm_id": 1,
+            "lat": 43.5,
+            "lng": -80.2,
+            "tags": {
+                "name": "The Bookshelf",
+                "addr:housenumber": "41",
+                "addr:street": "Quebec Street",
+                "addr:unit": "B",
+            },
+        }
+        record = seed._build_osm_record(parsed)
+        assert record["address_line1"] == "41 Quebec Street"
+        assert record["address_line2"] == "Unit B"
+
+    def test_build_osm_record_without_address_tags(self):
+        record = seed._build_osm_record(_osm_element())
+        assert record["address_line1"] is None
+        assert record["address_line2"] is None

@@ -43,6 +43,42 @@ def normalize_website(raw: str | None) -> str | None:
     return url
 
 
+def _clean(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    cleaned = " ".join(value.split())
+    return cleaned or None
+
+
+def build_address_lines(tags: dict | None) -> tuple[str | None, str | None]:
+    """
+    Build (address_line1, address_line2) from OSM addr:* tags. Never raises.
+
+    line1: "{addr:housenumber} {addr:street}", or the street alone, else addr:full.
+           A housenumber without a street is not a usable address → None.
+    line2: addr:unit, prefixed with "Unit " unless it already starts with a
+           designator word (e.g. "Suite 200", "Bureau 3"). "2", "B", "#4" → "Unit …".
+    """
+    if not tags:
+        return None, None
+
+    housenumber = _clean(tags.get("addr:housenumber"))
+    street = _clean(tags.get("addr:street"))
+
+    if street:
+        line1 = f"{housenumber} {street}" if housenumber else street
+    else:
+        line1 = _clean(tags.get("addr:full"))
+
+    unit = _clean(tags.get("addr:unit"))
+    if unit:
+        first_word = unit.split(" ", 1)[0]
+        if not (first_word.isalpha() and len(first_word) > 1):
+            unit = f"Unit {unit}"
+
+    return line1, unit
+
+
 def normalize_instagram(raw: str | None) -> str | None:
     """Return bare Instagram handle without @ or URL prefix. None if empty."""
     if not raw:

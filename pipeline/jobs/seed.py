@@ -5,8 +5,7 @@ Safe to re-run: uses upsert logic keyed on osm_id or (name_lower, city_lower).
 
 from pipeline.db import change_log, store_sources, stores
 from pipeline.sources import ciba, osm, wikidata
-from pipeline.transforms import dedup, normalize, quality_score, slug
-from pipeline.transforms.hours_parser import parse_osm_hours
+from pipeline.transforms import dedup, normalize, osm_fields, quality_score, slug, specialties
 from pipeline.utils.config import get_settings
 from pipeline.utils.excluded_stores import is_excluded
 from pipeline.utils.logging import get_logger
@@ -26,26 +25,8 @@ def _priority(source: str) -> int:
 
 def _build_osm_record(parsed: dict) -> dict:
     """Shape an OSM parse_element dict into a stores insert dict."""
-    tags = parsed.get("tags", {})
-    phone = normalize.normalize_phone(tags.get("phone") or tags.get("contact:phone"))
-    website = normalize.normalize_website(tags.get("website") or tags.get("contact:website"))
-    hours_raw = tags.get("opening_hours")
-    hours_parsed = parse_osm_hours(hours_raw)
-    province = normalize_province(
-        tags.get("addr:province") or tags.get("addr:state")
-    )
     return {
-        "name": tags.get("name", "").strip() or None,
-        "lat": parsed.get("lat"),
-        "lng": parsed.get("lng"),
-        "location": f"POINT({parsed.get('lng')} {parsed.get('lat')})" if parsed.get("lat") else None,
-        "phone": phone,
-        "website": website,
-        "hours_raw": hours_raw,
-        "hours_parsed": hours_parsed,
-        "city": tags.get("addr:city"),
-        "province": province,
-        "postal_code": normalize.normalize_postal_code(tags.get("addr:postcode")),
+        **osm_fields.osm_element_to_fields(parsed),
         "osm_id": parsed.get("osm_id"),
         "source": "osm",
         "is_verified": False,
@@ -190,6 +171,9 @@ def run_seed(dry_run: bool = False) -> None:
             existing = stores.get_store_by_osm_id(key)
 
         if existing:
+            record["specialties"] = specialties.resolve_specialties(
+                existing.get("specialties"), record.get("specialties")
+            )
             diff = _compute_diff(existing, record)
             if diff:
                 new_values = {field: change["to"] for field, change in diff.items()}
