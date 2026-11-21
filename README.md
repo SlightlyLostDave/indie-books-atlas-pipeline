@@ -1,5 +1,7 @@
 # Indie Books Atlas - Pipeline
 
+[![Sync OSM](https://github.com/SlightlyLostDave/indie-books-atlas-pipeline/actions/workflows/sync_osm.yml/badge.svg)](https://github.com/SlightlyLostDave/indie-books-atlas-pipeline/actions/workflows/sync_osm.yml)
+
 Data pipeline for [Indie Books Atlas](https://indie-books-atlas.vercel.app/), a map of independent bookstores across Canada. This repo handles ingestion and syncing store data into Supabase; the Next.js frontend lives in a separate repo.
 
 ## Jobs
